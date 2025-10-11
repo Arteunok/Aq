@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AQ – App de los Deseos (V3)</title>
+<style>
+:root{
+  --bg:#0e1020; --panel:#151838; --ink:#e9ecff; --muted:#aab1ff;
+  --accent:#7c5cff; --accent2:#4cc0ff; --ok:#46d39a; --warn:#ffbf69;
+  --card:#1b1f46; --btn:#232861;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:system-ui,Inter,Segoe UI,Roboto,Arial;color:var(--ink);
+  background:radial-gradient(1000px 400px at 10% -5%,#281f63 0%,transparent 60%),
+             radial-gradient(700px 400px at 120% 10%,#0b3a63 0%,transparent 60%),
+             var(--bg)
+}
+header,footer{padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header .badge{padding:4px 8px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));font-size:12px}
+header h1{font-size:18px;margin:0}
+.pill{padding:4px 8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;color:var(--muted);font-size:12px}
+main{max-width:1000px;margin:10px auto 100px;padding:0 16px}
+.panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:14px}
+.title{margin:0 0 8px;font-size:18px}
+.muted{color:var(--muted);font-size:14px}
+.small{font-size:12px;color:var(--muted)}
+input,textarea,select{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.03);color:var(--ink);font-size:14px;outline:none;
+}
+textarea{min-height:80px;resize:vertical}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;
+  border-radius:10px;background:var(--btn);color:var(--ink);border:1px solid rgba(255,255,255,.12);
+  cursor:pointer;text-decoration:none;font-size:14px}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none}
+.btn.ok{background:linear-gradient(90deg,#20bf55,#01baef)}
+.btn.warn{background:linear-gradient(90deg,#ff8e53,#fe6b8b)}
+.btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,.3)}
+.qcard{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin:10px 0}
+.options{display:grid;gap:8px;margin-top:8px}
+.opbtn{padding:12px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);cursor:pointer}
+.opbtn:hover{background:rgba(255,255,255,.1)}
+.hidden{display:none}
+.success{color:var(--ok)}
+.warn-t{color:var(--warn)}
+.center{text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">AQ</div><h1>App de los Deseos — V3</h1>
+  <span class="pill">Modo: <span id="modeLabel">Inicio</span></span>
+</header>
+
+<main>
+  <section class="panel" id="menu">
+    <h2 class="title">🌟 Bienvenido a AQ</h2>
+    <p class="muted">En esta versión puedes crear deseos, editarlos, probarlos y recibir notificaciones simuladas cuando alguien los alcanza.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" id="btnCreator">🎨 Crear Deseo</button>
+      <button class="btn ok" id="btnConsumer">🧭 Probar como Buscador</button>
+      <button class="btn ghost" id="btnInbox">🔔 Mis Deseos</button>
+    </div>
+  </section>
+
+  <!-- CREATOR -->
+  <section class="panel hidden" id="creator">
+    <h3 class="title">1) Escribe tu deseo</h3>
+    <textarea id="wishText" placeholder="Ejemplo: Quiero encontrar un guitarrista para mi banda..."></textarea>
+
+    <label>Categoría</label>
+    <select id="category">
+      <option value="laboral">Laboral / Servicio</option>
+      <option value="personal">Personal / Amistoso</option>
+      <option value="formacion">Conocimiento / Formación</option>
+      <option value="negocio">Propuesta de negocio</option>
+    </select>
+
+    <label>Número de preguntas (mínimo 12)</label>
+    <input id="depth" type="text" value="12"/>
+
+    <h3 class="title">2) Pregunta final</h3>
+    <input id="finalQ" type="text" placeholder="¿Te gustaría ayudarme con…?"/>
+    <input id="finalA" type="text" placeholder="Opción A"/>
+    <input id="finalB" type="text" placeholder="Opción B"/>
+    <input id="finalC" type="text" placeholder="Opción C"/>
+    <input id="finalD" type="text" placeholder="Opción D (correcta)"/>
+    <label>Respuesta correcta</label>
+    <select id="correct"><option>0</option><option>1</option><option>2</option><option selected>3</option></select>
+
+    <div class="center" style="margin-top:10px">
+      <button class="btn ok" id="genBtn">Generar Árbol + Editor</button>
+    </div>
+
+    <div id="editorArea" class="hidden">
+      <h3 class="title">3) Editor de Preguntas</h3>
+      <div id="questionList"></div>
+      <div class="center" style="margin:10px 0">
+        <button class="btn ghost" id="addQ">➕ Agregar pregunta</button>
+      </div>
+      <button class="btn primary" id="publishBtn">Publicar y Obtener Link</button>
+      <div id="publishOut" class="small muted"></div>
+    </div>
+  </section>
+
+  <!-- BUSCADOR -->
+  <section class="panel hidden" id="consumer">
+    <h3 class="title">🧭 Responder Cuestionario</h3>
+    <textarea id="loadHash" placeholder="Pega el enlace o hash aquí..."></textarea>
+    <button class="btn ok" id="loadBtn">Cargar Cuestionario</button>
+    <div id="quizArea" class="hidden">
+      <label>Tu correo</label>
+      <input id="email" type="email" placeholder="correo@ejemplo.com"/>
+      <button class="btn primary" id="startQuiz">Comenzar</button>
+      <div id="quizBox" class="qcard hidden"></div>
+      <div id="endMsg" class="qcard hidden"></div>
+    </div>
+  </section>
+
+  <!-- BANDEJA -->
+  <section class="panel hidden" id="inbox">
+    <h3 class="title">🔔 Mis Deseos (notificaciones simuladas)</h3>
+    <div id="notifList"></div>
+    <div class="center"><button class="btn ghost" id="clearInbox">Borrar todas</button></div>
+  </section>
+</main>
+
+<footer class="center small muted">AQ V3 © 2025 — Local test</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+const show=(s,on=true)=>{const el=$(s);if(el)el.classList.toggle('hidden',!on);}
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec=b=>{try{return JSON.parse(decodeURIComponent(escape(atob(b))));}catch(e){return null;}};
+const seed={
+  laboral:["¿Prefieres tareas prácticas o estratégicas?","¿Dispones de unas horas semanales?"],
+  personal:["¿Te interesa una conexión amistosa?","¿Compartirías tiempo y conversación?"],
+  formacion:["¿Te gustaría enseñar o aprender algo nuevo?","¿Valoras procesos de práctica y feedback?"],
+  negocio:["¿Buscas oportunidades con retorno?","¿Puedes aportar contactos o capital?"]
+};
+let TREE=null,TREE_ID=null,QUIZ=null;
+
+// NAV
+$("#btnCreator").onclick=()=>{show("#menu",false);show("#creator",true);$("#modeLabel").textContent="Creador";}
+$("#btnConsumer").onclick=()=>{show("#menu",false);show("#consumer",true);$("#modeLabel").textContent="Buscador";}
+$("#btnInbox").onclick=()=>{show("#menu",false);show("#inbox",true);$("#modeLabel").textContent="Bandeja";renderInbox();};
+
+// CREATOR
+function makeTree({wish,cat,d,finalQ,ops,ci}){
+  const n=Math.max(12,parseInt(d||12));const nodes=[];
+  nodes.push({q:"¿Qué te interesa de mí?",options:[
+    {t:"Laboral / Servicio",next:1},{t:"Personal / Amistoso",next:1},
+    {t:"Conocimiento / Formación",next:1},{t:"Propuesta de negocio",next:1}
+  ]});
+  for(let i=1;i<n-1;i++){
+    const q=seed[cat][i%seed[cat].length];
+    nodes.push({q,options:[{t:"Sí",next:i+1},{t:"No",next:"N"},{t:"Depende",next:"N"},{t:"Otra",next:"N"}]});
+  }
+  const f=n-1;
+  nodes[f]={q:finalQ,options:ops.map((t,i)=>({t,next:i==ci?"S":"N"}))};
+  return{nodes,wish,cat,depth:n,term:{S:{msg:"¡Deseo alcanzado!"},N:{msg:"Gracias por participar."}}};
+}
+$("#genBtn").onclick=()=>{
+  const wish=$("#wishText").value.trim(),cat=$("#category").value,d=$("#depth").value.trim();
+  const fq=$("#finalQ").value.trim(),ops=[$("#finalA").value,$("#finalB").value,$("#finalC").value,$("#finalD").value].map(x=>x.trim());
+  const ci=parseInt($("#correct").value,10);
+  TREE=makeTree({wish,cat,d,finalQ:fq,ops,ci});TREE_ID=Math.random().toString(36).slice(2);
+  renderEditor();show("#editorArea",true);
+};
+function renderEditor(){
+  const list=$("#questionList");list.innerHTML="";
+  TREE.nodes.forEach((node,i)=>{
+    if(i==0||i==TREE.nodes.length-1)return;
+    const card=document.createElement("div");
+    card.className="qcard";
+    card.innerHTML=`<label>Pregunta ${i}</label><input data-qi="${i}" value="${node.q}"/>`;
+    node.options.forEach((op,j)=>{
+      const inp=document.createElement("input");
+      inp.value=op.t;inp.placeholder=`Opción ${"ABCD"[j]}`;
+      inp.oninput=e=>node.options[j].t=e.target.value;
+      card.appendChild(inp);
+    });
+    const del=document.createElement("button");del.className="btn warn";del.textContent="Eliminar";
+    del.onclick=()=>{TREE.nodes.splice(i,1);renderEditor();};
+    card.appendChild(del);
+    list.appendChild(card);
+  });
+}
+$("#addQ").onclick=()=>{TREE.nodes.splice(TREE.nodes.length-1,0,{q:"Nueva pregunta",options:[{t:"Sí",next:TREE.nodes.length-1},{t:"No",next:"N"},{t:"Depende",next:"N"},{t:"Otra",next:"N"}]});renderEditor();};
+
+$("#publishBtn").onclick=()=>{
+  const hash=enc({id:TREE_ID,tree:TREE});
+  const url=`${location.origin}${location.pathname}#${hash}`;
+  $("#publishOut").innerHTML=`<div class='success'>Enlace generado:</div><code>${url}</code>
+  <p>Puedes copiarlo y pegarlo abajo en el modo Buscador para probar.</p>`;
+  saveToInbox(TREE_ID,TREE.wish);
+};
+
+// BUSCADOR
+$("#loadBtn").onclick=()=>{
+  const data=dec($("#loadHash").value.trim());if(!data){alert("Hash inválido");return;}
+  TREE=data.tree;TREE_ID=data.id;$("#quizArea").classList.remove("hidden");
+};
+$("#startQuiz").onclick=()=>{QUIZ={node:0};show("#quizBox",true);nextQ();};
+function nextQ(){
+  if(QUIZ.node==="N"||QUIZ.node==="S"){finish(QUIZ.node==="S");return;}
+  const node=TREE.nodes[QUIZ.node];const box=$("#quizBox");
+  box.innerHTML=`<div><strong>${node.q}</strong></div>`;const div=document.createElement("div");div.className="options";
+  node.options.forEach((op,i)=>{const b=document.createElement("button");b.className="opbtn";b.textContent=`${"ABCD"[i]}) ${op.t}`;
+    b.onclick=()=>{QUIZ.node=op.next;nextQ();};div.appendChild(b);});
+  box.appendChild(div);
+}
+function finish(success){
+  show("#quizBox",false);const msg=$("#endMsg");msg.classList.remove("hidden");
+  msg.innerHTML=success?`<div class='success'>${TREE.term.S.msg}</div>`:`<div>${TREE.term.N.msg}</div>`;
+  if(success)addNotification(TREE_ID,TREE.wish,$("#email").value.trim());
+}
+
+// INBOX (notificaciones)
+function addNotification(id,wish,email){
+  const all=JSON.parse(localStorage.getItem("aq_inbox")||"[]");
+  all.push({id,wish,email,date:new Date().toLocaleString()});
+  localStorage.setItem("aq_inbox",JSON.stringify(all));
+}
+function saveToInbox(id,wish){
+  const all=JSON.parse(localStorage.getItem("aq_created")||"[]");
+  all.push({id,wish,date:new Date().toLocaleString()});
+  localStorage.setItem("aq_created",JSON.stringify(all));
+}
+function renderInbox(){
+  const list=$("#notifList");list.innerHTML="";
+  const created=JSON.parse(localStorage.getItem("aq_created")||"[]");
+  const notif=JSON.parse(localStorage.getItem("aq_inbox")||"[]");
+  if(created.length==0){list.innerHTML="<p class='small'>No tienes deseos creados aún.</p>";return;}
+  created.forEach(c=>{
+    const matches=notif.filter(n=>n.id===c.id);
+    const box=document.createElement("div");box.className="qcard";
+    box.innerHTML=`<strong>Deseo:</strong> ${c.wish}<br><small>Public. ${c.date}</small><hr>
+      ${matches.length?`<strong>Coincidencias:</strong><ul>${matches.map(m=>`<li>${m.email} (${m.date})</li>`).join("")}</ul>`:"<span class='muted'>Sin coincidencias aún.</span>"}`;
+    list.appendChild(box);
+  });
+}
+$("#clearInbox").onclick=()=>{localStorage.removeItem("aq_inbox");renderInbox();}
+</script>
+</body>
+</html>
