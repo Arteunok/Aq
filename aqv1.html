@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AQ – App de los Deseos (V4 motor contextual)</title>
+<style>
+:root{
+  --bg:#0e1020; --panel:#151838; --ink:#e9ecff; --muted:#aab1ff;
+  --accent:#7c5cff; --accent2:#4cc0ff; --ok:#46d39a; --warn:#ffbf69; --err:#ff6b6b;
+  --card:#1b1f46; --btn:#232861;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Inter,Segoe UI,Roboto,Arial;color:var(--ink);
+  background:radial-gradient(900px 400px at 10% -5%,#281f63 0%,transparent 60%),
+             radial-gradient(700px 400px at 120% 10%,#0b3a63 0%,transparent 60%),
+             var(--bg)}
+header,footer{padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header .badge{padding:4px 8px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));font-size:12px}
+header h1{font-size:18px;margin:0}
+.pill{padding:4px 8px;border:1px solid rgba(255,255,255,.2);border-radius:999px;color:var(--muted);font-size:12px}
+main{max-width:1050px;margin:10px auto 96px;padding:0 16px}
+.panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:14px}
+.title{margin:0 0 8px;font-size:18px}
+.muted{color:var(--muted);font-size:14px}
+.small{font-size:12px;color:var(--muted)}
+input,textarea,select{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.03);color:var(--ink);font-size:14px;outline:none;
+}
+textarea{min-height:80px;resize:vertical}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;
+  border-radius:10px;background:var(--btn);color:var(--ink);border:1px solid rgba(255,255,255,.12);
+  cursor:pointer;text-decoration:none;font-size:14px}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none}
+.btn.ok{background:linear-gradient(90deg,#20bf55,#01baef)}
+.btn.warn{background:linear-gradient(90deg,#ff8e53,#fe6b8b)}
+.btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,.3)}
+.qcard{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin:10px 0}
+.options{display:grid;gap:8px;margin-top:8px}
+.opbtn{padding:12px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);cursor:pointer}
+.opbtn:hover{background:rgba(255,255,255,.1)}
+.hidden{display:none}
+.success{color:var(--ok)}
+.warn-t{color:var(--warn)}
+.center{text-align:center}
+.map{font-family:ui-monospace,Consolas,monospace;white-space:pre;font-size:12px;line-height:1.35}
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">AQ</div><h1>App de los Deseos — V4</h1>
+  <span class="pill">Modo: <span id="modeLabel">Inicio</span></span>
+  <span class="pill" id="info"></span>
+</header>
+
+<main>
+  <!-- MENU -->
+  <section class="panel" id="menu">
+    <h2 class="title">🌟 Bienvenido a AQ (motor contextual)</h2>
+    <p class="muted">Genera un laberinto real: solo la <strong>secuencia correcta</strong> de respuestas lleva al deseo. Preguntas temáticas y editor por nivel.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" id="goCreator">🎨 Crear & Publicar</button>
+      <button class="btn ok" id="goConsumer">🧭 Probar como Buscador</button>
+      <button class="btn ghost" id="goInbox">🔔 Mis notificaciones</button>
+    </div>
+  </section>
+
+  <!-- CREATOR -->
+  <section class="panel hidden" id="creator">
+    <h3 class="title">1) Escribe tu deseo</h3>
+    <textarea id="wish" placeholder="Ej.: Quiero encontrar un guitarrista que quiera colaborar en un proyecto de rock experimental..."></textarea>
+
+    <div class="qcard">
+      <div class="small">La primera pregunta siempre es: <em>¿Qué te interesa de mí?</em> (Laboral/Personal/Formación/Negocio)</div>
+      <div class="small">Selecciona la <strong>profundidad</strong> (niveles) del laberinto.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label>Niveles (12–50 recomendados)</label>
+        <input id="levels" type="number" min="6" value="12"/>
+      </div>
+      <div>
+        <label>Semillas (separadas por coma, opcional)</label>
+        <input id="seeds" type="text" placeholder="música, colaboración, banda, ensayo"/>
+        <div class="small">Si las dejas vacías, el sistema extrae temas del deseo.</div>
+      </div>
+    </div>
+
+    <h3 class="title">2) Pregunta final</h3>
+    <input id="finalQ" type="text" placeholder="¿Te gustaría ayudarme con…? (contiene el deseo)"/>
+    <input id="opA" type="text" placeholder="Opción A"/>
+    <input id="opB" type="text" placeholder="Opción B"/>
+    <input id="opC" type="text" placeholder="Opción C"/>
+    <input id="opD" type="text" placeholder="Opción D (suele ser la correcta)"/>
+    <label>Respuesta correcta</label>
+    <select id="finalCorrect"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3" selected>D</option></select>
+
+    <div class="center" style="margin:10px 0">
+      <button class="btn ok" id="gen">Generar Laberinto</button>
+    </div>
+
+    <!-- EDITOR -->
+    <div id="editor" class="hidden">
+      <h3 class="title">3) Editor por nivel (ruta correcta incluida)</h3>
+      <div id="pathView" class="qcard map"></div>
+      <div id="levelsList"></div>
+      <div class="center" style="margin:10px 0">
+        <button class="btn primary" id="publish">Publicar & Obtener enlace</button>
+        <button class="btn ghost" id="mapBtn">Ver mapa</button>
+      </div>
+      <div id="publishOut" class="small muted"></div>
+      <div id="mapView" class="qcard map hidden"></div>
+    </div>
+  </section>
+
+  <!-- CONSUMER -->
+  <section class="panel hidden" id="consumer">
+    <h3 class="title">🧭 Modo Buscador</h3>
+    <textarea id="hashIn" placeholder="Pega aquí el enlace con hash o solo el hash…"></textarea>
+    <button class="btn ok" id="load">Cargar</button>
+
+    <div id="quizArea" class="hidden">
+      <label>Tu correo (para registrar la notificación si llegas)</label>
+      <input id="email" type="email" placeholder="tucorreo@ejemplo.com"/>
+      <button class="btn primary" id="start">Comenzar</button>
+
+      <div id="qBox" class="qcard hidden"></div>
+      <div id="endMsg" class="qcard hidden"></div>
+    </div>
+  </section>
+
+  <!-- INBOX -->
+  <section class="panel hidden" id="inbox">
+    <h3 class="title">🔔 Notificaciones (simuladas)</h3>
+    <div id="inboxList" class="qcard small">Aún no hay notificaciones.</div>
+    <div class="center"><button class="btn ghost" id="clearInbox">Vaciar</button></div>
+  </section>
+</main>
+
+<footer class="center small muted">AQ V4 © 2025 — MVP local</footer>
+
+<script>
+/* ===== Helpers ===== */
+const $=s=>document.querySelector(s);
+const show=(s,on=true)=>{const el=$(s);if(el)el.classList.toggle('hidden',!on);}
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec=b=>{try{return JSON.parse(decodeURIComponent(escape(atob(b))));}catch(e){return null;}};
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+
+/* ===== Estado ===== */
+let TREE=null, TREE_ID=null, QUIZ=null;
+
+/* ===== Navegación ===== */
+$("#goCreator").onclick=()=>{toggle('creator');};
+$("#goConsumer").onclick=()=>{toggle('consumer'); if(location.hash) { $("#hashIn").value=location.hash.slice(1);} };
+$("#goInbox").onclick=()=>{toggle('inbox'); renderInbox();};
+function toggle(id){["menu","creator","consumer","inbox"].forEach(x=>show("#"+x,false)); show("#"+id,true); $("#modeLabel").textContent=cap(id);}
+
+/* ===== Motor contextual ===== */
+function extraerTemas(deseo, semillas){
+  if(semillas && semillas.trim()){
+    return semillas.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean).slice(0,8);
+  }
+  const palabras = deseo.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu," ").split(/\s+/).filter(w=>w.length>3);
+  const base = ["colaboración","aprender","crear","ayudar","explorar","compromiso","tiempo","recursos"];
+  const set = Array.from(new Set(palabras.concat(base)));
+  return set.slice(0,8);
+}
+const plantillasQ = [
+  (t,i)=>`En relación con ${t}, ¿te motiva avanzar al siguiente paso?`,
+  (t,i)=>`Para ti, ${t} requiere compromiso real ahora mismo?`,
+  (t,i)=>`Si hablamos de ${t}, ¿podrías apoyar de forma constante?`,
+  (t,i)=>`¿Te gustaría involucrarte activamente en ${t}?`,
+];
+const tonos = ["Sí, me interesa y puedo", "A veces", "Depende", "No, por ahora"];
+
+function generarPregunta(tema, nivel){
+  const tpl = plantillasQ[nivel % plantillasQ.length];
+  const q = tpl(tema, nivel);
+  const options = [0,1,2,3].map(j => tonos[j] + (j===0?`. Sobre todo en ${tema}.`:""));
+  return {q, options};
+}
+
+/* Genera ruta y nodos: cada nivel una correcta (0..3) que avanza */
+function generarArbolDeseo({deseo, niveles, semillas, finalQ, finalOps, finalCorrect}){
+  const temas = extraerTemas(deseo, semillas);
+  const pathCorrecto = Array.from({length: niveles-1}, ()=> Math.floor(Math.random()*4)); // sin contar la final
+  const nodes = [];
+
+  // Q0 fija
+  nodes.push({
+    q:"¿Qué te interesa de mí?",
+    options:[
+      {t:"Laboral / Servicio", next:1},
+      {t:"Personal / Amistoso", next:1},
+      {t:"Conocimiento / Formación", next:1},
+      {t:"Propuesta de negocio", next:1},
+    ]
+  });
+
+  // Niveles intermedios 1..niveles-2
+  for(let i=1;i<niveles-1;i++){
+    const tema = temas[(i-1) % temas.length];
+    const {q, options} = generarPregunta(tema, i-1);
+    const correct = pathCorrecto[i-1]; // 0..3
+    const opts = options.map((t,j)=>({ t, next: j===correct ? i+1 : "NEUTRAL" }));
+    nodes.push({ q, options: opts, correcta: correct, tema });
+  }
+
+  // Final
+  const last = niveles-1;
+  nodes[last] = {
+    q: finalQ || "¿Te gustaría ayudar a materializar mi deseo?",
+    options: finalOps.map((t,i)=>({ t, next: i===finalCorrect ? "SUCCESS" : "NEUTRAL" })),
+    correcta: finalCorrect
+  };
+
+  return { nodes, deseo, pathCorrecto, depth: niveles,
+           term: { SUCCESS:{msg:"¡Has llegado al deseo! Gracias por tu disposición."},
+                   NEUTRAL:{msg:"Gracias por participar. Este camino no continúa."} } };
+}
+
+/* ===== Generación + Editor ===== */
+$("#gen").onclick=()=>{
+  const deseo=$("#wish").value.trim();
+  const niveles=Math.max(6, parseInt($("#levels").value||12,10));
+  const semillas=$("#seeds").value;
+  const finalQ=$("#finalQ").value.trim()||"¿Te gustaría ayudar a materializar mi deseo?";
+  const ops=[$("#opA").value,$("#opB").value,$("#opC").value,$("#opD").value].map(s=>s.trim()||"Opción");
+  const finalCorrect=parseInt($("#finalCorrect").value,10);
+
+  if(!deseo){ alert("Escribe el deseo."); return; }
+
+  TREE_ID = uid();
+  TREE = generarArbolDeseo({deseo, niveles, semillas, finalQ, finalOps:ops, finalCorrect});
+
+  renderEditor();
+  $("#info").textContent = `Niveles: ${TREE.depth}`;
+  show("#editor", true);
+};
+
+function renderEditor(){
+  // Vista del path
+  const seq = TREE.nodes.slice(1, TREE.depth-1).map((n,i)=> "ABCD"[n.correcta]).join(" → ");
+  $("#pathView").textContent = `Ruta correcta (por niveles): ${seq} → FINAL(${ "ABCD"[TREE.nodes[TREE.depth-1].correcta] })`;
+
+  // Tarjetas editables
+  const list = $("#levelsList"); list.innerHTML="";
+  for(let i=1;i<TREE.depth-1;i++){
+    const node = TREE.nodes[i];
+    const card = document.createElement("div"); card.className="qcard";
+    card.innerHTML = `
+      <div class="small">Nivel ${i} — Tema: <em>${node.tema}</em></div>
+      <label>Pregunta</label>
+      <input type="text" data-q="${i}" value="${esc(node.q)}"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        ${node.options.map((op,j)=>`
+          <div>
+            <label>Opción ${"ABCD"[j]}</label>
+            <input type="text" data-op="${i}:${j}" value="${esc(op.t)}"/>
+          </div>
+        `).join("")}
+      </div>
+      <div style="margin-top:8px">
+        <label>Opción correcta</label>
+        <select data-correct="${i}">
+          <option value="0" ${node.correcta===0?"selected":""}>A</option>
+          <option value="1" ${node.correcta===1?"selected":""}>B</option>
+          <option value="2" ${node.correcta===2?"selected":""}>C</option>
+          <option value="3" ${node.correcta===3?"selected":""}>D</option>
+        </select>
+      </div>
+    `;
+    list.appendChild(card);
+  }
+
+  // Final editable
+  const last = TREE.nodes[TREE.depth-1];
+  const finalCard = document.createElement("div"); finalCard.className="qcard";
+  finalCard.innerHTML = `
+    <div class="small"><strong>FINAL</strong></div>
+    <label>Pregunta final</label>
+    <input type="text" data-q="final" value="${esc(last.q)}"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      ${last.options.map((op,j)=>`
+        <div>
+          <label>Opción ${"ABCD"[j]}</label>
+          <input type="text" data-op="final:${j}" value="${esc(op.t)}"/>
+        </div>
+      `).join("")}
+    </div>
+    <div style="margin-top:8px">
+      <label>Opción correcta</label>
+      <select data-correct="final">
+        <option value="0" ${last.correcta===0?"selected":""}>A</option>
+        <option value="1" ${last.correcta===1?"selected":""}>B</option>
+        <option value="2" ${last.correcta===2?"selected":""}>C</option>
+        <option value="3" ${last.correcta===3?"selected":""}>D</option>
+      </select>
+    </div>
+  `;
+  list.appendChild(finalCard);
+
+  // Listeners de edición
+  list.querySelectorAll('input[data-q]').forEach(inp=>{
+    inp.oninput = (e)=>{
+      const id = e.target.getAttribute('data-q');
+      if(id==="final") TREE.nodes[TREE.depth-1].q = e.target.value;
+      else TREE.nodes[+id].q = e.target.value;
+    };
+  });
+  list.querySelectorAll('input[data-op]').forEach(inp=>{
+    inp.oninput = (e)=>{
+      const [id, j] = e.target.getAttribute('data-op').split(":");
+      if(id==="final") TREE.nodes[TREE.depth-1].options[+j].t = e.target.value;
+      else TREE.nodes[+id].options[+j].t = e.target.value;
+    };
+  });
+  list.querySelectorAll('select[data-correct]').forEach(sel=>{
+    sel.onchange = (e)=>{
+      const id = e.target.getAttribute('data-correct');
+      const idx = parseInt(e.target.value,10);
+      if(id==="final"){
+        const last = TREE.nodes[TREE.depth-1];
+        last.correcta = idx;
+        last.options.forEach((op,i)=> op.next = (i===idx) ? "SUCCESS" : "NEUTRAL");
+      }else{
+        const i = parseInt(id,10);
+        TREE.nodes[i].correcta = idx;
+        TREE.nodes[i].options.forEach((op,j)=> op.next = (j===idx) ? i+1 : "NEUTRAL");
+      }
+      renderEditor(); // refrescar ruta
+    };
+  });
+}
+
+/* ===== Publicación y mapa ===== */
+$("#publish").onclick=()=>{
+  const payload = { id:TREE_ID, v:4, tree:TREE };
+  const url = `${location.origin}${location.pathname}#${enc(payload)}`;
+  $("#publishOut").innerHTML = `<div class="success">Enlace generado:</div><code class="small">${url}</code>
+    <p class="small">Cópialo y pruébalo en el modo Buscador.</p>`;
+  // guardar "deseo publicado" para mostrar bandeja del creador
+  const created = JSON.parse(localStorage.getItem("aq_created")||"[]");
+  if(!created.find(x=>x.id===TREE_ID)){
+    created.unshift({id:TREE_ID, wish:TREE.deseo, at:new Date().toLocaleString()});
+    localStorage.setItem("aq_created", JSON.stringify(created));
+  }
+};
+$("#mapBtn").onclick=()=>{
+  const lines=[];
+  lines.push(`Q0: ¿Qué te interesa de mí? -> Q1`);
+  for(let i=1;i<TREE.depth-1;i++){
+    const n=TREE.nodes[i];
+    lines.push(`Q${i}: ${n.q}`);
+    n.options.forEach((op,j)=>{
+      const dest = op.next==="NEUTRAL" ? "Ø" : `Q${op.next}`;
+      lines.push(`   ${"ABCD"[j]}: ${op.t} → ${dest}`);
+    });
+  }
+  const f=TREE.nodes[TREE.depth-1];
+  lines.push(`Q${TREE.depth-1} (FINAL): ${f.q}`);
+  f.options.forEach((op,j)=> lines.push(`   ${"ABCD"[j]}: ${op.t} → ${j===f.correcta?"FIN✓":"Ø"}`));
+  $("#mapView").textContent = lines.join("\n");
+  show("#mapView",true);
+};
+
+/* ===== Modo Buscador ===== */
+$("#load").onclick=()=>{
+  const raw=$("#hashIn").value.trim();
+  const b64 = raw.includes("#") ? raw.split("#").pop() : raw;
+  const data = dec(b64);
+  if(!data || !data.tree) { alert("Hash o enlace inválido."); return; }
+  TREE = data.tree; TREE_ID = data.id;
+  show("#quizArea", true);
+};
+$("#start").onclick=()=>{
+  const email=$("#email").value.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert("Correo inválido"); return; }
+  const key=`aq_attempt_${TREE_ID}_${email}`;
+  if(localStorage.getItem(key)){ alert("Ya respondiste este cuestionario con ese correo."); return; }
+  localStorage.setItem(key,"run");
+  QUIZ = { email, node:0, key };
+  runStep();
+};
+function runStep(){
+  if(QUIZ.node==="NEUTRAL" || QUIZ.node==="SUCCESS"){ end(QUIZ.node==="SUCCESS"); return; }
+  const node = TREE.nodes[QUIZ.node];
+  $("#qBox").classList.remove("hidden");
+  $("#qBox").innerHTML = `<div><strong>${node.q}</strong></div>`;
+  const opts = document.createElement("div"); opts.className="options";
+  node.options.forEach((op,i)=>{
+    const b=document.createElement("button"); b.className="opbtn"; b.textContent=`${"ABCD"[i]}) ${op.t}`;
+    b.onclick=()=>{ QUIZ.node = op.next; runStep(); };
+    opts.appendChild(b);
+  });
+  $("#qBox").appendChild(opts);
+}
+function end(success){
+  show("#qBox",false); show("#endMsg",true);
+  $("#endMsg").innerHTML = success
+    ? `<div class="success">${TREE.term.SUCCESS.msg}</div>`
+    : `<div>${TREE.term.NEUTRAL.msg}</div>`;
+  localStorage.setItem(QUIZ.key, success?"success":"done");
+  if(success){ // registrar notificación simulada
+    const inbox = JSON.parse(localStorage.getItem("aq_inbox")||"[]");
+    inbox.unshift({ id:TREE_ID, email:QUIZ.email, at:new Date().toLocaleString(), wish:TREE.deseo });
+    localStorage.setItem("aq_inbox", JSON.stringify(inbox));
+  }
+}
+
+/* ===== Bandeja (simulada) ===== */
+function renderInbox(){
+  const created = JSON.parse(localStorage.getItem("aq_created")||"[]");
+  const inbox = JSON.parse(localStorage.getItem("aq_inbox")||"[]");
+  if(!created.length){ $("#inboxList").innerHTML="Aún no has publicado deseos."; return; }
+  let html="";
+  created.forEach(c=>{
+    const matches = inbox.filter(n=>n.id===c.id);
+    html += `<div class="qcard"><strong>Deseo:</strong> ${c.wish}<br><span class="small">Publicado: ${c.at}</span><hr>`;
+    if(matches.length){
+      html += `<div><strong>${matches.length}</strong> persona(s) llegó/aron al deseo:</div><ul class="small">` +
+              matches.map(m=>`<li>${m.email} — ${m.at}</li>`).join("") + `</ul>`;
+    }else{
+      html += `<span class="small muted">Sin coincidencias aún.</span>`;
+    }
+    html += `</div>`;
+  });
+  $("#inboxList").innerHTML = html;
+}
+$("#clearInbox").onclick=()=>{ localStorage.removeItem("aq_inbox"); renderInbox(); };
+
+/* ===== Util ===== */
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","&quot;":"&quot;"}[c]));}
+window.addEventListener("load",()=>{ if(location.hash) { toggle('consumer'); $("#hashIn").value=location.hash.slice(1); } });
+</script>
+</body>
+</html>
