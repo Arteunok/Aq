@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AQ – App de los Deseos (MVP local)</title>
+<style>
+  :root{
+    --bg:#0e1020; --panel:#151838; --ink:#e9ecff; --muted:#aab1ff;
+    --accent:#7c5cff; --accent2:#4cc0ff; --ok:#46d39a; --warn:#ffbf69; --err:#ff6b6b;
+    --card:#1b1f46; --btn:#232861;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial;
+    color:var(--ink); background: radial-gradient(1200px 600px at 20% -10%, #281f63 0%, transparent 60%),
+               radial-gradient(900px 500px at 120% 10%, #0b3a63 0%, transparent 60%),
+               var(--bg);
+  }
+  header,footer{padding:14px 16px; background:transparent; display:flex; align-items:center; gap:12px}
+  header h1{margin:0; font-size:18px; letter-spacing:.5px}
+  header .badge{padding:4px 8px; border-radius:999px; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-size:12px}
+  main{max-width:900px; margin:10px auto 80px; padding:0 16px}
+  .grid{display:grid; gap:16px}
+  .panel{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:16px}
+  .title{font-size:18px; margin:0 0 8px}
+  .muted{color:var(--muted); font-size:14px}
+  label{font-size:13px; color:var(--muted)}
+  input[type="text"],input[type="email"],textarea,select{
+    width:100%; padding:12px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.03); color:var(--ink); outline:none; font-size:14px;
+  }
+  textarea{min-height:96px; resize:vertical}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .row-4{display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:11px 14px; border-radius:12px; background:var(--btn); color:var(--ink);
+    border:1px solid rgba(255,255,255,.12); cursor:pointer; user-select:none; text-decoration:none;
+  }
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2)); border:none}
+  .btn.ghost{background:transparent; border:1px dashed rgba(255,255,255,.2)}
+  .btn.ok{background:linear-gradient(90deg,#20bf55,#01baef)}
+  .btn.warn{background:linear-gradient(90deg,#ff8e53,#fe6b8b)}
+  .pill{padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); font-size:12px; color:var(--muted)}
+  .list{display:flex; flex-wrap:wrap; gap:8px}
+  .qcard{
+    background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:14px; margin:8px 0;
+  }
+  .options{display:grid; gap:8px; margin-top:8px}
+  .opbtn{padding:12px; border-radius:10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); cursor:pointer}
+  .opbtn:hover{background:rgba(255,255,255,.1)}
+  .hint{font-size:12px; color:var(--muted)}
+  .success{color:var(--ok)} .error{color:var(--err)} .warn-t{color:var(--warn)}
+  .center{text-align:center}
+  code.small{font-size:12px; word-break:break-all; color:#d0d6ff}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">AQ</div>
+  <h1>App de los Deseos — MVP Local</h1>
+  <span class="pill">Modo: <span id="modeLabel">Creador</span></span>
+  <span class="pill" id="treeInfo"></span>
+</header>
+
+<main class="grid">
+  <section class="panel" id="modePicker">
+    <h2 class="title">¿Qué quieres hacer?</h2>
+    <div class="list">
+      <button class="btn primary" id="goCreator">Crear y publicar un deseo</button>
+      <button class="btn" id="goConsumer">Probar como Buscador (desde un enlace)</button>
+    </div>
+    <p class="muted">Este prototipo genera un árbol con una única ruta correcta hacia la pregunta final que contiene tu deseo.</p>
+  </section>
+
+  <section class="panel hidden" id="creator">
+    <h3 class="title">1) Compártenos tu deseo (máx. 300 caracteres)</h3>
+    <textarea id="wishText" maxlength="300" placeholder="Ej.: Quiero encontrar un guitarrista para mi banda..."></textarea>
+
+    <div class="row">
+      <div>
+        <label for="category">Categoría inicial</label>
+        <select id="category">
+          <option value="laboral">Laboral / Servicio</option>
+          <option value="personal">Personal / Amistoso</option>
+          <option value="formacion">Conocimiento / Formación</option>
+          <option value="negocio">Propuesta de negocio</option>
+        </select>
+      </div>
+      <div>
+        <label for="depth">Cantidad de preguntas (mín. 12)</label>
+        <input type="text" id="depth" value="12" />
+      </div>
+    </div>
+
+    <h3 class="title">2) Pregunta final que contiene tu deseo</h3>
+    <input id="finalQ" type="text" placeholder="Ej.: ¿Te gustaría ayudarme con...?" />
+    <div class="row-4">
+      <input id="finalA" type="text" placeholder="Opción A" />
+      <input id="finalB" type="text" placeholder="Opción B" />
+      <input id="finalC" type="text" placeholder="Opción C" />
+      <input id="finalD" type="text" placeholder="Opción D (correcta)" />
+    </div>
+    <div class="row">
+      <div>
+        <label for="correct">¿Cuál opción revela el deseo?</label>
+        <select id="correct">
+          <option value="0">A</option>
+          <option value="1">B</option>
+          <option value="2">C</option>
+          <option value="3" selected>D</option>
+        </select>
+      </div>
+      <div class="center">
+        <button class="btn ok" id="genBtn">Generar árbol con IA</button>
+      </div>
+    </div>
+
+    <div id="preview" class="hidden">
+      <h3 class="title">3) Vista previa rápida</h3>
+      <div id="previewStats" class="muted"></div>
+      <div class="qcard">
+        <div class="muted">Pregunta 1:</div>
+        <div><strong>¿Qué te interesa de mí?</strong></div>
+        <ol class="muted">
+          <li>A) Laboral / Servicio</li>
+          <li>B) Personal / Amistoso</li>
+          <li>C) Conocimiento / Formación</li>
+          <li>D) Propuesta de negocio</li>
+        </ol>
+      </div>
+      <button class="btn primary" id="publishBtn">Publicar y obtener enlace</button>
+      <div id="publishOut" class="muted"></div>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="consumer">
+    <h3 class="title">Responder cuestionario</h3>
+    <div id="linkLoad" class="qcard">
+      <div id="linkStatus" class="hint"></div>
+    </div>
+
+    <div id="emailGate" class="qcard hidden">
+      <label for="email">Ingresa tu correo para participar (1 intento)</label>
+      <input type="email" id="email" placeholder="tucorreo@ejemplo.com" />
+      <button class="btn ok" id="startQuiz">Comenzar</button>
+      <div id="emailMsg" class="hint"></div>
+    </div>
+
+    <div id="runQuiz" class="hidden">
+      <div id="qProg" class="muted"></div>
+      <div id="qBox" class="qcard"></div>
+    </div>
+
+    <div id="endMsg" class="qcard hidden"></div>
+  </section>
+</main>
+
+<footer>
+  <button class="btn ghost" id="resetLS">Borrar intentos</button>
+  <span class="hint">MVP local (sin servidor)</span>
+</footer>
+
+<script>
+// Utilidades básicas
+const $ = sel => document.querySelector(sel);
+const show = (id, on=true)=>{const el=$(id);if(el)el.classList.toggle('hidden',!on);}
+const uid = ()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+function encodeData(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))));}
+function decodeData(b){try{return JSON.parse(decodeURIComponent(escape(atob(b))));}catch(e){return null;}}
+let TREE=null,QUIZ=null,TREE_ID=null;
+const modeLabel=$("#modeLabel");
+$("#goCreator").onclick=()=>{modeLabel.textContent="Creador";show("#modePicker",false);show("#creator",true);show("#consumer",false);};
+$("#goConsumer").onclick=()=>{modeLabel.textContent="Buscador";show("#modePicker",false);show("#consumer",true);show("#creator",false);hydrate();};
+const seed={laboral:["¿Prefieres tareas prácticas o estratégicas?","¿Dispones de unas horas semanales?"],
+personal:["¿Te interesa una conexión amistosa?","¿Te nace ayudar desinteresadamente?"],
+formacion:["¿Te gustaría enseñar o mentorizar?","¿Tienes habilidades para compartir?"],
+negocio:["¿Buscas oportunidades con retorno?","¿Te atrae invertir en proyectos?"]};
+function buildTree({wish,category,depth,finalQ,finalOps,correctIndex}){const n=Math.max(12,parseInt(depth||12));const nodes=[];
+nodes.push({q:"¿Qué te interesa de mí?",options:["Laboral","Personal","Formación","Negocio"].map(t=>({t,next:1}))});
+for(let i=1;i<n-1;i++){const q=seed[category][i%seed[category].length];
+nodes.push({q,options:[{t:"Sí",next:i+1},{t:"Depende",next:"N"},{t:"No",next:"N"},{t:"Otra",next:"N"}]});}
+const finalIndex=n-1;nodes[finalIndex]={q:finalQ,options:finalOps.map((t,i)=>({t,next:i===correctIndex?"S":"N"}))};
+return{nodes,wish,depth:n,term:{S:{msg:"Gracias, tu participación fue registrada."},N:{msg:"Gracias por participar."}}};}
+$("#genBtn").onclick=()=>{const w=$("#wishText").value.trim(),cat=$("#category").value,d=$("#depth").value.trim(),
+fq=$("#finalQ").value.trim(),ops=[$("#finalA").value,$("#finalB").value,$("#finalC").value,$("#finalD").value].map(x=>x.trim()),
+ci=parseInt($("#correct").value,10);if(!w||!fq||ops.some(x=>!x))return alert("Completa todos los campos");
+TREE=buildTree({wish:w,category:cat,depth:d,finalQ:fq,finalOps:ops,correctIndex:ci});TREE_ID=uid();
+$("#previewStats").innerHTML=`Árbol generado con ${TREE.depth} preguntas. Categoría: ${cat}`;show("#preview",true);};
+$("#publishBtn").onclick=()=>{if(!TREE)return alert("Genera el árbol primero.");const data={id:TREE_ID,tree:TREE};
+const hash=encodeData(data);const url=`${location.origin}${location.pathname}#${hash}`;$("#publishOut").innerHTML=
+`<p><strong>Enlace:</strong></p><code class="small">${url}</code><p class="hint">Ábrelo en otra pestaña para probar como Buscador.</p>`;};
+function hydrate(){const h=location.hash.replace("#","");if(!h)return $("#linkStatus").textContent="Sin datos.";
+const data=decodeData(h);if(!data)return $("#linkStatus").textContent="Hash inválido.";TREE=data.tree;TREE_ID=data.id;$("#linkStatus").innerHTML="<span class='success'>Cuestionario cargado</span>";show("#emailGate",true);}
+$("#startQuiz").onclick=()=>{const e=$("#email").value.trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))return $("#emailMsg").textContent="Correo inválido";
+const k=`aq_${TREE_ID}_${e}`;if(localStorage.getItem(k))return $("#emailMsg").innerHTML="<span class='warn-t'>Ya participaste.</span>";
+localStorage.setItem(k,"run");QUIZ={email:e,node:0,key:k};show("#runQuiz",true);show("#emailGate",false);step();};
+function step(){const box=$("#qBox");if(!TREE)return;const node=TREE.nodes[QUIZ.node];
+if(QUIZ.node==="S"||QUIZ.node==="N"){end(QUIZ.node==="S");return;}
+$("#qProg").textContent=`Pregunta ${QUIZ.node+1}/${TREE.depth}`;box.innerHTML=`<div><strong>${node.q}</strong></div>`;
+const opts=document.createElement("div");opts.className="options";node.options.forEach(o=>{const b=document.createElement("button");
+b.className="opbtn";b.textContent=o.t;b.onclick=()=>{QUIZ.node=o.next;step();};opts.appendChild(b);});box.appendChild(opts);}
+function end(s){show("#runQuiz",false);show("#endMsg",true);$("#endMsg").innerHTML=`<div class='${s?'success':'muted'}'><strong>${TREE.term[s?'S':'N'].msg}</strong></div>`;}
+$("#resetLS").onclick=()=>{localStorage.clear();alert("Intentos borrados");};
+window.addEventListener("load",()=>{if(location.hash)$("#goConsumer").click();});
+</script>
+</body>
+</html>
