@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VORTEX RUN: LA PAZ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <header class="hud">
+      <div>Level: <span id="level">1</span>/3</div>
+      <div>Lives: <span id="lives">3</span></div>
+      <div>Score: <span id="score">0</span></div>
+      <div>Coins: <span id="coins">0</span></div>
+      <div>Distance: <span id="distance">0m</span></div>
+    </header>
+
+    <canvas id="game" width="960" height="540" aria-label="Vortex Run game canvas"></canvas>
+
+    <div class="controls">
+      <p><strong>Controls:</strong> Space / ↑ = Jump, ↓ = Slide, P = Pause, R = Restart</p>
+      <p><strong>Powerups:</strong> Turbo (speed boost), Shield (hit protection), Magnet (coin attract)</p>
+    </div>
+
+    <div id="overlay" class="overlay hidden">
+      <h1 id="overlayTitle">VORTEX RUN: LA PAZ</h1>
+      <p id="overlayText">Collect coins and survive all 3 levels.</p>
+      <button id="overlayBtn">Start Run</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
